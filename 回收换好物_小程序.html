@@ -176,8 +176,36 @@
       color: var(--text-primary);
     }
 
-    .valuation-count {
-      font-size: 12px;
+    .valuation-total {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--primary);
+      letter-spacing: -0.5px;
+    }
+
+    .valuation-total::before {
+      content: '¥';
+      font-size: 14px;
+      font-weight: 600;
+      margin-right: 2px;
+    }
+
+    .valuation-empty {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 0;
+      gap: 8px;
+    }
+
+    .valuation-empty-icon {
+      font-size: 40px;
+      opacity: 0.5;
+    }
+
+    .valuation-empty-text {
+      font-size: 13px;
       color: var(--text-tertiary);
     }
 
@@ -537,10 +565,15 @@
       <!-- 估值记录区域 -->
       <div class="valuation-section">
         <div class="valuation-header">
-          <span class="valuation-title">我的估值记录</span>
-          <span class="valuation-count">0/10</span>
+          <span class="valuation-title">我的估值总金额</span>
+          <span class="valuation-total" id="valuationTotal">0</span>
         </div>
         <div class="valuation-scroll" id="valuationScroll">
+          <!-- 空状态提示 -->
+          <div class="valuation-empty" id="valuationEmpty">
+            <div class="valuation-empty-icon">📦</div>
+            <div class="valuation-empty-text">请先去估值</div>
+          </div>
           <!-- 新增估值按钮 -->
           <div class="add-valuation-btn" onclick="showAddModal()">
             <div class="icon">+</div>
@@ -566,7 +599,7 @@
   </div>
 
   <!-- 悬浮返回首页 -->
-  <a href="index.html" class="floating-home" title="返回首页">
+  <a href="../index.html" class="floating-home" title="返回首页">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
       <polyline points="9 22 9 12 15 12 15 22"/>
@@ -596,13 +629,26 @@
     // 渲染估值卡片
     function renderValuations() {
       const scroll = document.getElementById('valuationScroll');
-      const countEl = document.querySelector('.valuation-count');
-      countEl.textContent = `${valuations.length}/10`;
+      const emptyEl = document.getElementById('valuationEmpty');
+      const totalEl = document.getElementById('valuationTotal');
 
-      // 保留新增按钮，移除其他
+      // 计算总金额
+      const total = valuations.reduce((sum, v) => sum + v.amount, 0);
+      totalEl.textContent = total.toLocaleString();
+
+      // 保留空状态和新增按钮，移除其他
+      const emptyState = scroll.querySelector('.valuation-empty');
       const addBtn = scroll.querySelector('.add-valuation-btn');
       scroll.innerHTML = '';
+      if (emptyState) scroll.appendChild(emptyState);
       scroll.appendChild(addBtn);
+
+      // 显示/隐藏空状态
+      if (valuations.length > 0) {
+        emptyState.style.display = 'none';
+      } else {
+        emptyState.style.display = 'flex';
+      }
 
       // 渲染已有卡片
       valuations.forEach((v, index) => {
