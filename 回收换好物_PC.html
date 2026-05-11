@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>回收换物商品清单</title>
+  <link rel="stylesheet" href="https://unpkg.com/antd@5/dist/reset.css">
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: #F5F5F5;
+      margin: 0;
+      padding: 16px;
+    }
+    .drag-row { cursor: grab; }
+    .drag-row:active { cursor: grabbing; }
+    .drag-row.dragging { opacity: 0.5; background: #E6F4FF; }
+    .drag-row.drag-over { border-top: 2px solid #1677FF; }
+
+    /* 悬浮返回按钮 */
+    .floating-home {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      width: 44px;
+      height: 44px;
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+      cursor: pointer;
+      text-decoration: none;
+      transition: transform 0.2s, box-shadow 0.2s;
+      z-index: 9999;
+    }
+
+    .floating-home:hover {
+      transform: scale(1.1);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+    }
+
+    .floating-home:active {
+      transform: scale(0.95);
+    }
+
+    .floating-home svg {
+      width: 22px;
+      height: 22px;
+      color: #1677FF;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/dayjs@1/dayjs.min.js"></script>
+  <script src="https://unpkg.com/antd@5/dist/antd.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <script type="text/babel">
+const { useState, useMemo, useCallback } = React;
+const { Cascader, Table, Button, Space, Input, Modal, message, Tag, Pagination, Card, Form, Select } = antd;
+
+const categoryOptions = [
+  { value: 'electronics', label: '电子产品', children: [
+    { value: 'phone', label: '手机' },
+    { value: 'computer', label: '电脑' },
+    { value: 'tablet', label: '平板' },
+  ]},
+  { value: 'appliances', label: '家电', children: [
+    { value: 'tv', label: '电视' },
+    { value: 'refrigerator', label: '冰箱' },
+    { value: 'washer', label: '洗衣机' },
+  ]},
+  { value: 'furniture', label: '家具', children: [
+    { value: 'sofa', label: '沙发' },
+    { value: 'bed', label: '床' },
+    { value: 'table', label: '桌子' },
+  ]},
+];
+
+const mockData = [
+  { id: 1, name: 'iPhone 14 Pro', price: 7999, status: 1, sortOrder: 1 },
+  { id: 2, name: 'MacBook Pro 14', price: 15999, status: 1, sortOrder: 2 },
+  { id: 3, name: '小米电视 65寸', price: 3999, status: 0, sortOrder: 3 },
+  { id: 4, name: '海尔冰箱', price: 2999, status: 1, sortOrder: 4 },
+  { id: 5, name: '真皮沙发', price: 5999, status: 1, sortOrder: 5 },
+  { id: 6, name: 'iPad Air', price: 4999, status: 0, sortOrder: 6 },
+  { id: 7, name: '戴森吸尘器', price: 3499, status: 1, sortOrder: 7 },
+  { id: 8, name: '实木餐桌', price: 2599, status: 1, sortOrder: 8 },
+];
+
+// 交换两个商品的 sortOrder 并重新排序
+function moveOrder(prev, draggedId, targetId) {
+  const sorted = [...prev].sort((a, b) => a.sortOrder - b.sortOrder);
+  const dragIdx = sorted.findIndex((item) => item.id === draggedId);
+  const targetIdx = sorted.findIndex((item) => item.id === targetId);
+  if (dragIdx === -1 || targetIdx === -1 || dragIdx === targetIdx) return prev;
+  const [dragItem] = sorted.splice(dragIdx, 1);
+  sorted.splice(targetIdx, 0, dragItem);
+  return sorted.map((item, index) => ({ ...item, sortOrder: index + 1 }));
+}
+
+function App() {
+  const [form] = Form.useForm();
+  const [selectedRowKeys, setSelectedRowKeys] = useState([]);
+  const [dataSource, setDataSource] = useState(mockData);
+  const [addModalVisible, setAddModalVisible] = useState(false);
+  const [pagination, setPagination] = useState({ current: 1, pageSize: 20 });
+  const [addForm] = Form.useForm();
+  const [orderModalVisible, setOrderModalVisible] = useState(false);
+  const [orderModalRecord, setOrderModalRecord] = useState(null);
+  const [orderValue, setOrderValue] = useState('');
+  const [draggingId, setDraggingId] = useState(null);
+  const [dragOverId, setDragOverId] = useState(null);
+
+  const sortedData = useMemo(() => {
+    return [...dataSource].sort((a, b) => a.sortOrder - b.sortOrder);
+  }, [dataSource]);
+
+  const handleRemove = (record) => {
+    Modal.confirm({
+      title: '确认移除',
+      content: `确定要移除「${record.name}」吗？`,
+      okText: '确定', okType: 'danger', cancelText: '取消',
+      onOk: () => {
+        setDataSource((prev) => {
+          const remaining = prev.filter((item) => item.id !== record.id).sort((a, b) => a.sortOrder - b.sortOrder);
+          return remaining.map((item, index) => ({ ...item, sortOrder: index + 1 }));
+        });
+        setSelectedRowKeys((prev) => prev.filter((key) => key !== record.id));
+        message.success('商品已移除');
+      },
+    });
+  };
+
+  const handleSetOrder = (record) => {
+    const total = dataSource.length;
+    setOrderModalRecord(record);
+    setOrderValue(String(record.sortOrder));
+    setOrderModalVisible(true);
+  };
+
+  const handleConfirmOrder = () => {
+    const newOrder = parseInt(orderValue);
+    const total = dataSource.length;
+    if (!newOrder || newOrder < 1 || newOrder > total) {
+      message.warning(`请输入 1 到 ${total} 之间的序号`);
+      return;
+    }
+    const currentOrder = orderModalRecord.sortOrder;
+    if (newOrder === currentOrder) {
+      setOrderModalVisible(false);
+      return;
+    }
+
+    setDataSource((prev) =>
+      prev.map((item) => {
+        if (item.id === orderModalRecord.id) {
+          return { ...item, sortOrder: newOrder };
+        }
+        if (newOrder > currentOrder) {
+          if (item.sortOrder > currentOrder && item.sortOrder <= newOrder) {
+            return { ...item, sortOrder: item.sortOrder - 1 };
+          }
+        } else {
+          if (item.sortOrder >= newOrder && item.sortOrder < currentOrder) {
+            return { ...item, sortOrder: item.sortOrder + 1 };
+          }
+        }
+        return item;
+      })
+    );
+    setOrderModalVisible(false);
+    message.success('顺序已更新');
+  };
+
+  // 拖拽相关
+  const handleDragStart = (record) => {
+    setDraggingId(record.id);
+  };
+
+  const handleDragOver = useCallback((e, record) => {
+    e.preventDefault();
+    if (draggingId && draggingId !== record.id) {
+      setDragOverId(record.id);
+    }
+  }, [draggingId]);
+
+  const handleDragLeave = useCallback(() => {
+    setDragOverId(null);
+  }, []);
+
+  const handleDrop = useCallback((e, targetRecord) => {
+    e.preventDefault();
+    if (draggingId && draggingId !== targetRecord.id) {
+      setDataSource((prev) => moveOrder(prev, draggingId, targetRecord.id));
+      message.success('顺序已更新');
+    }
+    setDraggingId(null);
+    setDragOverId(null);
+  }, [draggingId]);
+
+  const handleDragEnd = useCallback(() => {
+    setDraggingId(null);
+    setDragOverId(null);
+  }, []);
+
+  const columns = [
+    {
+      title: '序号',
+      key: 'sortOrder',
+      dataIndex: 'sortOrder',
+      width: 60,
+      align: 'center',
+      render: (sortOrder, record) => (
+        <span
+          draggable
+          onDragStart={() => handleDragStart(record)}
+          onDragOver={(e) => e.preventDefault()}
+          onDrop={(e) => handleDrop(e, record)}
+          onDragEnd={handleDragEnd}
+          className="drag-row"
+          style={{ cursor: 'grab' }}
+        >
+          <span style={{ color: '#8C8C8C', marginRight: 4, cursor: 'grab' }}>&#9776;</span>
+          {sortOrder}
+        </span>
+      ),
+    },
+    { title: '商品名称', dataIndex: 'name', key: 'name', width: 300 },
+    { title: '零售价', dataIndex: 'price', key: 'price', width: 120, align: 'right', render: (price) => `¥${price.toLocaleString()}` },
+    { title: '上架状态', dataIndex: 'status', key: 'status', width: 100, align: 'center', render: (status) => <Tag color={status === 1 ? 'success' : 'default'}>{status === 1 ? '已上架' : '未上架'}</Tag> },
+    {
+      title: '操作',
+      key: 'action',
+      width: 200,
+      align: 'center',
+      render: (_, record) => (
+        <Space size="middle">
+          <a style={{ color: '#FF4D4F' }} onClick={() => handleRemove(record)}>移除</a>
+          <a onClick={() => handleSetOrder(record)}>指定顺序</a>
+        </Space>
+      ),
+    },
+  ];
+
+  const rowSelection = { selectedRowKeys, onChange: (keys) => setSelectedRowKeys(keys) };
+
+  const handleRemoveSelected = () => {
+    if (selectedRowKeys.length === 0) {
+      message.warning('请先选择要移除的商品');
+      return;
+    }
+    Modal.confirm({
+      title: '确认移除',
+      content: `确定要移除选中的 ${selectedRowKeys.length} 个商品吗？`,
+      okText: '确定', okType: 'danger', cancelText: '取消',
+      onOk: () => {
+        setDataSource((prev) => {
+          const remaining = prev.filter((item) => !selectedRowKeys.includes(item.id)).sort((a, b) => a.sortOrder - b.sortOrder);
+          return remaining.map((item, index) => ({ ...item, sortOrder: index + 1 }));
+        });
+        setSelectedRowKeys([]);
+        message.success('商品移除成功');
+      },
+    });
+  };
+
+  const handleAddProduct = () => {
+    addForm.validateFields().then((values) => {
+      const maxOrder = dataSource.length;
+      const newProduct = { id: Date.now(), name: values.name, price: values.price, status: 1, sortOrder: maxOrder + 1 };
+      setDataSource((prev) => [...prev, newProduct]);
+      addForm.resetFields();
+      setAddModalVisible(false);
+      message.success('商品添加成功');
+    });
+  };
+
+  const handleSearch = () => {
+    const values = form.getFieldsValue();
+    console.log('查询条件:', values);
+    message.info('查询功能已触发');
+  };
+
+  const handlePageChange = (page, pageSize) => {
+    setPagination({ current: page, pageSize });
+  };
+
+  const orderOptions = Array.from({ length: dataSource.length }, (_, i) => ({
+    value: i + 1,
+    label: String(i + 1),
+  }));
+
+  // 给每行添加拖拽属性
+  const onRow = (record) => ({
+    draggable: draggingId !== record.id,
+    onDragStart: () => handleDragStart(record),
+    onDragOver: (e) => handleDragOver(e, record),
+    onDragLeave: handleDragLeave,
+    onDrop: (e) => handleDrop(e, record),
+    onDragEnd: handleDragEnd,
+    style: {
+      ...(draggingId === record.id ? { opacity: 0.4, background: '#E6F4FF' } : {}),
+      ...(dragOverId === record.id ? { borderTop: '2px solid #1677FF' } : {}),
+    },
+  });
+
+  return (
+    <div>
+      <h2 style={{ margin: '0 0 16px 0', fontSize: 20, fontWeight: 600, color: '#262626' }}>回收换物商品清单</h2>
+
+      <Card style={{ marginBottom: 16 }}>
+        <Form form={form} layout="horizontal">
+          <Space size={16} align="end" style={{ flexWrap: 'wrap' }}>
+            <Form.Item label="商品分类" name="category">
+              <Cascader options={categoryOptions} placeholder="请选择商品分类" allowClear multiple maxTagCount="responsive" style={{ minWidth: 280 }} />
+            </Form.Item>
+            <Form.Item label="零售价" style={{ marginRight: 8 }}>
+              <Space.Compact>
+                <Form.Item name="priceMin" noStyle><Input placeholder="最小值" style={{ width: 100 }} /></Form.Item>
+                <span style={{ width: 24, textAlign: 'center', lineHeight: '32px', color: '#8C8C8C' }}>至</span>
+                <Form.Item name="priceMax" noStyle><Input placeholder="最大值" style={{ width: 100 }} /></Form.Item>
+              </Space.Compact>
+            </Form.Item>
+            <Button type="primary" onClick={handleSearch}>查询</Button>
+          </Space>
+        </Form>
+      </Card>
+
+      <Card>
+        <Space style={{ marginBottom: 16 }}>
+          <Button type="primary" onClick={() => setAddModalVisible(true)}>+ 添加商品</Button>
+          <Button danger onClick={handleRemoveSelected}>移除商品</Button>
+        </Space>
+        <Table columns={columns} dataSource={sortedData} rowSelection={rowSelection} rowKey="id" size="middle" pagination={false} scroll={{ x: 'max-content' }} onRow={onRow} />
+        <div style={{ marginTop: 16, display: 'flex', justifyContent: 'flex-end' }}>
+          <Pagination current={pagination.current} pageSize={pagination.pageSize} total={dataSource.length} showSizeChanger showQuickJumper showTotal={(total) => `总计 ${total} 条数据`} onChange={handlePageChange} pageSizeOptions={['20', '50', '100']} />
+        </div>
+      </Card>
+
+      {/* 添加商品弹窗 */}
+      <Modal title="添加商品" open={addModalVisible} onOk={handleAddProduct} onCancel={() => { addForm.resetFields(); setAddModalVisible(false); }} destroyOnClose width={500}>
+        <Form form={addForm} layout="vertical" preserve={false}>
+          <Form.Item label="商品名称" name="name" rules={[{ required: true, message: '请输入商品名称' }]}><Input placeholder="请输入商品名称" /></Form.Item>
+          <Form.Item label="零售价" name="price" rules={[{ required: true, message: '请输入零售价' }, { type: 'number', message: '请输入有效数字' }]}><Input type="number" placeholder="请输入零售价" prefix="¥" /></Form.Item>
+          <Form.Item label="商品分类" name="category" rules={[{ required: true, message: '请选择商品分类' }]}><Cascader options={categoryOptions} placeholder="请选择商品分类" multiple maxTagCount="responsive" /></Form.Item>
+        </Form>
+      </Modal>
+
+      {/* 指定顺序弹窗 */}
+      <Modal title="指定顺序" open={orderModalVisible} onOk={handleConfirmOrder} onCancel={() => setOrderModalVisible(false)} width={400}>
+        <Form layout="vertical">
+          <Form.Item label={`商品「${orderModalRecord?.name}」当前在第 ${orderModalRecord?.sortOrder} 位，请选择新位置`}>
+            <Select options={orderOptions} value={parseInt(orderValue)} onChange={(val) => setOrderValue(String(val))} />
+          </Form.Item>
+        </Form>
+      </Modal>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+
+  <!-- 悬浮返回首页 -->
+  <a href="index.html" class="floating-home" title="返回首页">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+      <polyline points="9 22 9 12 15 12 15 22"/>
+    </svg>
+  </a>
+</body>
+</html>
