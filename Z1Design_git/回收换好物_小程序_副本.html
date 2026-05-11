@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=750, user-scalable=no">
+  <title>回收换好物</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/antd@5/dist/reset.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700&display=swap');
+
+    :root {
+      --primary: #22C55E;
+      --primary-dark: #16A34A;
+      --primary-light: #DCFCE7;
+      --primary-gradient: linear-gradient(135deg, #22C55E 0%, #10B981 100%);
+      --accent: #F59E0B;
+      --bg-page: #F8FAFC;
+      --bg-card: #FFFFFF;
+      --text-primary: #1E293B;
+      --text-secondary: #64748B;
+      --text-tertiary: #94A3B8;
+      --border: #E2E8F0;
+      --shadow-sm: 0 2px 8px rgba(34, 197, 94, 0.08);
+      --shadow-md: 0 4px 16px rgba(34, 197, 94, 0.12);
+      --shadow-lg: 0 8px 32px rgba(34, 197, 94, 0.16);
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --radius-xl: 20px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #0F172A;
+      padding: 48px 0;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+    }
+
+    .phone-frame {
+      width: 375px;
+      min-height: 812px;
+      background: var(--bg-page);
+      border-radius: 44px;
+      overflow: hidden;
+      box-shadow: 0 32px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.1);
+      position: relative;
+    }
+
+    /* 状态栏 */
+    .status-bar {
+      height: 44px;
+      background: linear-gradient(135deg, #22C55E 0%, #10B981 100%);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 28px;
+    }
+
+    .status-bar-time {
+      font-size: 15px;
+      font-weight: 600;
+      color: white;
+      letter-spacing: -0.5px;
+    }
+
+    .status-bar-icons {
+      display: flex;
+      gap: 5px;
+      font-size: 14px;
+    }
+
+    /* 导航栏 */
+    .nav-bar {
+      height: 44px;
+      background: linear-gradient(135deg, #22C55E 0%, #10B981 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .nav-title {
+      font-size: 17px;
+      font-weight: 600;
+      color: white;
+      letter-spacing: -0.3px;
+    }
+
+    .nav-back {
+      position: absolute;
+      left: 16px;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 28px;
+      font-weight: 300;
+    }
+
+    /* 页面内容 */
+    .page-content {
+      padding-bottom: 80px;
+    }
+
+    /* 顶部区域 */
+    .header-section {
+      background: linear-gradient(135deg, #22C55E 0%, #10B981 100%);
+      padding: 16px 16px 24px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .header-section::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -20%;
+      width: 200px;
+      height: 200px;
+      background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+      border-radius: 50%;
+    }
+
+    .header-section::after {
+      content: '';
+      position: absolute;
+      bottom: -30%;
+      left: -10%;
+      width: 150px;
+      height: 150px;
+      background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%);
+      border-radius: 50%;
+    }
+
+    .header-title {
+      color: white;
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 4px;
+      letter-spacing: -0.5px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .header-subtitle {
+      color: rgba(255,255,255,0.85);
+      font-size: 13px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* 估值记录区域 */
+    .valuation-section {
+      margin: -12px 16px 16px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .valuation-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .valuation-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .valuation-count {
+      font-size: 12px;
+      color: var(--text-tertiary);
+    }
+
+    .valuation-scroll {
+      display: flex;
+      gap: 10px;
+      overflow-x: auto;
+      padding-bottom: 8px;
+      scroll-snap-type: x mandatory;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .valuation-scroll::-webkit-scrollbar {
+      display: none;
+    }
+
+    /* 估值卡片 */
+    .valuation-card {
+      flex-shrink: 0;
+      width: 160px;
+      background: var(--bg-card);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-md);
+      padding: 14px;
+      scroll-snap-align: start;
+      transition: transform 0.2s, box-shadow 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .valuation-card:active {
+      transform: scale(0.98);
+    }
+
+    .valuation-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: var(--primary-gradient);
+    }
+
+    .valuation-device {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .valuation-device-icon {
+      width: 36px;
+      height: 36px;
+      background: var(--primary-light);
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+
+    .valuation-device-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-primary);
+      line-height: 1.3;
+    }
+
+    .valuation-device-model {
+      font-size: 11px;
+      color: var(--text-tertiary);
+    }
+
+    .valuation-amount {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--primary);
+      letter-spacing: -1px;
+    }
+
+    .valuation-amount::before {
+      content: '¥';
+      font-size: 14px;
+      font-weight: 600;
+      margin-right: 2px;
+    }
+
+    .valuation-label {
+      font-size: 11px;
+      color: var(--text-tertiary);
+      margin-top: 2px;
+    }
+
+    .valuation-delete {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      width: 20px;
+      height: 20px;
+      background: rgba(239, 68, 68, 0.1);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #EF4444;
+      font-size: 12px;
+      cursor: pointer;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    .valuation-card:hover .valuation-delete {
+      opacity: 1;
+    }
+
+    /* 新增估值按钮 */
+    .add-valuation-btn {
+      flex-shrink: 0;
+      width: 100px;
+      background: var(--bg-card);
+      border: 2px dashed var(--primary);
+      border-radius: var(--radius-lg);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .add-valuation-btn:active {
+      transform: scale(0.98);
+      background: var(--primary-light);
+    }
+
+    .add-valuation-btn .icon {
+      width: 32px;
+      height: 32px;
+      background: var(--primary-light);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--primary);
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .add-valuation-btn .text {
+      font-size: 12px;
+      color: var(--primary);
+      font-weight: 500;
+    }
+
+    /* 推荐商品区域 */
+    .recommend-section {
+      padding: 0 16px;
+    }
+
+    .recommend-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .recommend-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .recommend-title::before {
+      content: '';
+      width: 4px;
+      height: 16px;
+      background: var(--primary-gradient);
+      border-radius: 2px;
+    }
+
+    .recommend-subtitle {
+      font-size: 12px;
+      color: var(--text-tertiary);
+    }
+
+    /* 商品网格 */
+    .product-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+
+    /* 商品卡片 */
+    .product-card {
+      background: var(--bg-card);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .product-card:active {
+      transform: scale(0.98);
+    }
+
+    .product-image {
+      width: 100%;
+      aspect-ratio: 1;
+      background: linear-gradient(145deg, #FAFAFA 0%, #F0F0F0 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .product-image img {
+      width: 70%;
+      height: 70%;
+      object-fit: contain;
+    }
+
+    .product-tag {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      background: var(--primary);
+      color: white;
+      font-size: 10px;
+      font-weight: 600;
+      padding: 3px 6px;
+      border-radius: 4px;
+    }
+
+    .product-tag.discount {
+      background: linear-gradient(135deg, #F59E0B 0%, #EAB308 100%);
+    }
+
+    .product-info {
+      padding: 10px;
+    }
+
+    .product-name {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-primary);
+      line-height: 1.4;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      margin-bottom: 8px;
+      min-height: 36px;
+    }
+
+    .product-price-row {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .product-price-original {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      text-decoration: line-through;
+    }
+
+    .product-price {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--primary);
+      letter-spacing: -0.5px;
+    }
+
+    .product-price::before {
+      content: '¥';
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .product-deduction {
+      font-size: 10px;
+      color: var(--text-secondary);
+      background: var(--primary-light);
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin-left: auto;
+    }
+
+    /* 底部安全区 */
+    .safe-area {
+      height: 34px;
+    }
+  </style>
+</head>
+<body>
+  <div class="phone-frame">
+    <!-- 状态栏 -->
+    <div class="status-bar">
+      <span class="status-bar-time">9:41</span>
+      <span class="status-bar-icons">📶 📡 🔋</span>
+    </div>
+
+    <!-- 导航栏 -->
+    <div class="nav-bar">
+      <div class="nav-back">‹</div>
+      <div class="nav-title">回收换好物</div>
+    </div>
+
+    <!-- 页面内容 -->
+    <div class="page-content">
+      <!-- 顶部区域 -->
+      <div class="header-section">
+        <div class="header-title">旧机估值 · 换新立减</div>
+        <div class="header-subtitle">估价成功可获额外补贴，限时活动进行中</div>
+      </div>
+
+      <!-- 估值记录区域 -->
+      <div class="valuation-section">
+        <div class="valuation-header">
+          <span class="valuation-title">我的估值记录</span>
+          <span class="valuation-count">0/10</span>
+        </div>
+        <div class="valuation-scroll" id="valuationScroll">
+          <!-- 新增估值按钮 -->
+          <div class="add-valuation-btn" onclick="showAddModal()">
+            <div class="icon">+</div>
+            <div class="text">新增估值</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 推荐商品区域 -->
+      <div class="recommend-section">
+        <div class="recommend-header">
+          <div class="recommend-title">为你推荐</div>
+          <div class="recommend-subtitle">根据估值金额智能匹配</div>
+        </div>
+        <div class="product-grid" id="productGrid">
+          <!-- 商品卡片将由JS生成 -->
+        </div>
+      </div>
+
+      <!-- 底部安全区 -->
+      <div class="safe-area"></div>
+    </div>
+  </div>
+
+  <script>
+    // 模拟估值数据
+    let valuations = [];
+
+    // 推荐商品数据
+    const products = [
+      { id: 1, name: 'iPhone 15 Pro Max 256GB 钛金色', price: 9999, originalPrice: 11999, deduction: 800, tag: '热门' },
+      { id: 2, name: '小米14 Ultra 影像旗舰', price: 6499, originalPrice: 7299, deduction: 600, tag: '新品' },
+      { id: 3, name: '华为Mate 60 Pro+ 512GB', price: 7999, originalPrice: 9999, deduction: 700, tag: '精选' },
+      { id: 4, name: 'MacBook Air M3 13寸', price: 8999, originalPrice: 10499, deduction: 1000, tag: '学生优惠' },
+      { id: 5, name: 'iPad Pro 12.9寸 M2芯片', price: 9299, originalPrice: 10999, deduction: 900, tag: '教育优惠' },
+      { id: 6, name: 'AirPods Pro 2 代', price: 1799, originalPrice: 2199, deduction: 300, tag: '配件' },
+      { id: 7, name: 'Apple Watch Ultra 2', price: 5499, originalPrice: 6499, deduction: 500, tag: '智能穿戴' },
+      { id: 8, name: '三星 Galaxy S24 Ultra', price: 8999, originalPrice: 10999, deduction: 850, tag: '旗舰' },
+    ];
+
+    const deviceIcons = ['📱', '💻', '⌚', '🎧', '📲'];
+    const deviceNames = ['iPhone', 'MacBook', 'Apple Watch', 'AirPods', 'Samsung'];
+    const models = ['Pro Max', 'Ultra', 'Plus', '标准版', '青春版'];
+
+    // 渲染估值卡片
+    function renderValuations() {
+      const scroll = document.getElementById('valuationScroll');
+      const countEl = document.querySelector('.valuation-count');
+      countEl.textContent = `${valuations.length}/10`;
+
+      // 保留新增按钮，移除其他
+      const addBtn = scroll.querySelector('.add-valuation-btn');
+      scroll.innerHTML = '';
+      scroll.appendChild(addBtn);
+
+      // 渲染已有卡片
+      valuations.forEach((v, index) => {
+        const card = document.createElement('div');
+        card.className = 'valuation-card';
+        card.innerHTML = `
+          <div class="valuation-delete" onclick="deleteValuation(${index})">✕</div>
+          <div class="valuation-device">
+            <div class="valuation-device-icon">${v.icon}</div>
+            <div>
+              <div class="valuation-device-name">${v.name}</div>
+              <div class="valuation-device-model">${v.model}</div>
+            </div>
+          </div>
+          <div class="valuation-amount">${v.amount.toLocaleString()}</div>
+          <div class="valuation-label">预估最高回收价</div>
+        `;
+        scroll.insertBefore(card, addBtn);
+      });
+    }
+
+    // 删除估值
+    function deleteValuation(index) {
+      valuations.splice(index, 1);
+      renderValuations();
+      // 重新计算推荐（这里简化处理）
+    }
+
+    // 显示新增弹窗（模拟）
+    function showAddModal() {
+      if (valuations.length >= 10) {
+        alert('最多支持10个估值记录');
+        return;
+      }
+      // 模拟添加一个随机估值
+      const newValuation = {
+        icon: deviceIcons[Math.floor(Math.random() * deviceIcons.length)],
+        name: deviceNames[Math.floor(Math.random() * deviceNames.length)],
+        model: models[Math.floor(Math.random() * models.length)],
+        amount: Math.floor(Math.random() * 5000) + 500
+      };
+      valuations.push(newValuation);
+      renderValuations();
+    }
+
+    // 渲染商品列表
+    function renderProducts() {
+      const grid = document.getElementById('productGrid');
+      grid.innerHTML = products.map(p => `
+        <div class="product-card" onclick="selectProduct(${p.id})">
+          <div class="product-image">
+            <img src="https://img.icons8.com/external-inkubators-detailed-outline-inkubators/300/external-smartphone-ecommerce-inkubators-detailed-outline-inkubators.png" alt="${p.name}">
+            <div class="product-tag">${p.tag}</div>
+          </div>
+          <div class="product-info">
+            <div class="product-name">${p.name}</div>
+            <div class="product-price-row">
+              <span class="product-price">${p.price.toLocaleString()}</span>
+              <span class="product-price-original">¥${p.originalPrice.toLocaleString()}</span>
+              <span class="product-deduction">抵¥${p.deduction}</span>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // 选择商品
+    function selectProduct(id) {
+      const product = products.find(p => p.id === id);
+      alert(`已选择: ${product.name}\n到手价: ¥${product.price} (已抵扣 ¥${product.deduction})`);
+    }
+
+    // 初始化
+    renderProducts();
+    renderValuations();
+  </script>
+</body>
+</html>

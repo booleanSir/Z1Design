@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=750, user-scalable=no">
+  <title>我的设备</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/antd@5/dist/reset.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700&display=swap');
+
+    :root {
+      --primary: #FF6B35;
+      --primary-light: #FFF0EB;
+      --accent: #FF4D4F;
+      --bg-page: #F5F5F5;
+      --bg-card: #FFFFFF;
+      --bg-insurance: #FFF7F5;
+      --text-primary: #1A1A1A;
+      --text-secondary: #666666;
+      --text-tertiary: #999999;
+      --border: #EEEEEE;
+      --shadow-sm: 0 2px 8px rgba(0,0,0,0.04);
+      --shadow-md: 0 4px 16px rgba(0,0,0,0.08);
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #1A1A1A;
+      padding: 48px 0;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+    }
+
+    .phone-frame {
+      width: 375px;
+      min-height: 812px;
+      background: var(--bg-page);
+      border-radius: 44px;
+      overflow: hidden;
+      box-shadow: 0 32px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.1);
+      position: relative;
+    }
+
+    /* 状态栏 */
+    .status-bar {
+      height: 44px;
+      background: var(--bg-card);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 28px;
+    }
+
+    .status-bar-time {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-primary);
+      letter-spacing: -0.5px;
+    }
+
+    .status-bar-icons {
+      display: flex;
+      gap: 5px;
+      font-size: 14px;
+    }
+
+    /* 导航栏 */
+    .nav-bar {
+      height: 44px;
+      background: var(--bg-card);
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      border-bottom: 0.5px solid var(--border);
+    }
+
+    .nav-back {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-primary);
+      font-size: 28px;
+      font-weight: 300;
+      margin-left: -4px;
+    }
+
+    .nav-title {
+      flex: 1;
+      text-align: center;
+      font-size: 17px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-right: 36px;
+    }
+
+    .nav-actions {
+      display: flex;
+      gap: 6px;
+    }
+
+    .nav-btn {
+      background: rgba(0,0,0,0.04);
+      border-radius: 14px;
+      padding: 5px 10px;
+      font-size: 13px;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* 页面内容 */
+    .page-content {
+      padding: 16px;
+    }
+
+    /* 设备卡片 */
+    .device-card {
+      background: var(--bg-card);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+      margin-bottom: 12px;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .device-card:active {
+      transform: scale(0.99);
+    }
+
+    /* 设备主体 */
+    .device-main {
+      display: flex;
+      padding: 14px;
+      gap: 12px;
+    }
+
+    .device-image {
+      width: 68px;
+      height: 68px;
+      background: linear-gradient(145deg, #FAFAFA 0%, #F0F0F0 100%);
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .device-image img {
+      width: 44px;
+      height: 44px;
+      object-fit: contain;
+    }
+
+    .device-info {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 5px;
+      min-width: 0;
+    }
+
+    .device-name {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-primary);
+      letter-spacing: -0.3px;
+    }
+
+    .device-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .device-meta-item {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .device-meta-item .label {
+      color: var(--text-secondary);
+    }
+
+    .device-serial {
+      font-size: 11px;
+      color: var(--text-tertiary);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      max-width: 200px;
+    }
+
+    /* 保险区域 */
+    .insurance-section {
+      border-top: 0.5px solid var(--border);
+      padding: 12px 14px;
+    }
+
+    .insurance-header {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+
+    .insurance-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .insurance-icon {
+      width: 16px;
+      height: 16px;
+      background: var(--primary);
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 10px;
+      font-weight: 700;
+    }
+
+    /* 保险卡片 */
+    .insurance-card {
+      background: var(--bg-insurance);
+      border-radius: var(--radius-md);
+      padding: 12px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .insurance-card::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 3px;
+      background: linear-gradient(180deg, var(--primary) 0%, #FF8F65 100%);
+      border-radius: 2px 0 0 2px;
+    }
+
+    .insurance-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 8px;
+    }
+
+    .insurance-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .insurance-name {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+      line-height: 1.4;
+    }
+
+    .insurance-period {
+      font-size: 11px;
+      color: var(--text-tertiary);
+    }
+
+    .insurance-status {
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 500;
+      flex-shrink: 0;
+    }
+
+    .insurance-status.active {
+      background: #E6F7E6;
+      color: #52C41A;
+    }
+
+    .insurance-status.expired {
+      background: #F5F5F5;
+      color: var(--text-tertiary);
+    }
+
+    .insurance-bottom {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .insurance-remaining {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    .insurance-remaining strong {
+      color: var(--primary);
+      font-weight: 600;
+    }
+
+    .insurance-remaining.expired strong {
+      color: var(--text-tertiary);
+    }
+
+    .insurance-desc-toggle {
+      font-size: 12px;
+      color: var(--primary);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      transition: opacity 0.2s;
+    }
+
+    .insurance-desc-toggle:active {
+      opacity: 0.7;
+    }
+
+    .insurance-desc {
+      margin-top: 10px;
+      padding: 10px;
+      background: white;
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+      animation: slideDown 0.2s ease-out;
+    }
+
+    @keyframes slideDown {
+      from {
+        opacity: 0;
+        transform: translateY(-8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .insurance-desc p {
+      margin: 0;
+    }
+
+    /* 展开提示 */
+    .insurance-hint {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      margin-top: 8px;
+      font-size: 11px;
+      color: var(--text-tertiary);
+    }
+
+    .insurance-hint svg {
+      width: 12px;
+      height: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="phone-frame">
+    <!-- 状态栏 -->
+    <div class="status-bar">
+      <span class="status-bar-time">9:41</span>
+      <span class="status-bar-icons">📶 📡 🔋</span>
+    </div>
+
+    <!-- 导航栏 -->
+    <div class="nav-bar">
+      <div class="nav-back">‹</div>
+      <div class="nav-title">我的设备</div>
+      <div class="nav-actions">
+        <div class="nav-btn">···</div>
+        <div class="nav-btn">◎</div>
+      </div>
+    </div>
+
+    <!-- 页面内容 -->
+    <div class="page-content">
+      <!-- 设备卡片1 -->
+      <div class="device-card">
+        <div class="device-main">
+          <div class="device-image">
+            <img src="https://img.icons8.com/external-inkubators-detailed-outline-inkubators/300/external-smartphone-ecommerce-inkubators-detailed-outline-inkubators.png" alt="iPhone 14 Pro">
+          </div>
+          <div class="device-info">
+            <div class="device-name">iPhone 14 Pro</div>
+            <div class="device-meta">
+              <div class="device-meta-item">
+                <span class="label">购买时间</span>
+                <span>2025-12-01</span>
+              </div>
+              <div class="device-meta-item">
+                <span class="label">机龄</span>
+                <span>5个月</span>
+              </div>
+              <div class="device-serial">序列号: 123456789012345</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="insurance-section">
+          <div class="insurance-header">
+            <div class="insurance-icon">保</div>
+            <span class="insurance-title">保险</span>
+          </div>
+          <div class="insurance-card">
+            <div class="insurance-top">
+              <div class="insurance-info">
+                <div class="insurance-name">2026良品券满500减30元</div>
+                <div class="insurance-period">有效期: 2026/01/01-2026/12/31</div>
+              </div>
+              <span class="insurance-status active">未使用</span>
+            </div>
+            <div class="insurance-bottom">
+              <span class="insurance-remaining">剩余 <strong>1</strong> 次</span>
+              <span class="insurance-desc-toggle" onclick="toggleDesc(1)">
+                查看说明 ▼
+              </span>
+            </div>
+            <div id="desc-1" class="insurance-desc" style="display: none;">
+              <p>1. 本券适用于二手良品订单</p>
+              <p>2. 满500元可用</p>
+              <p>3. 不可叠加使用</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 设备卡片2 -->
+      <div class="device-card">
+        <div class="device-main">
+          <div class="device-image">
+            <img src="https://img.icons8.com/external-inkubators-detailed-outline-inkubators/300/external-laptop-ecommerce-inkubators-detailed-outline-inkubators.png" alt="MacBook Pro 14">
+          </div>
+          <div class="device-info">
+            <div class="device-name">MacBook Pro 14</div>
+            <div class="device-meta">
+              <div class="device-meta-item">
+                <span class="label">购买时间</span>
+                <span>2025-08-15</span>
+              </div>
+              <div class="device-meta-item">
+                <span class="label">机龄</span>
+                <span>9个月</span>
+              </div>
+              <div class="device-serial">序列号: 987654321098765</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="insurance-section">
+          <div class="insurance-header">
+            <div class="insurance-icon">保</div>
+            <span class="insurance-title">保险</span>
+          </div>
+          <div class="insurance-card">
+            <div class="insurance-top">
+              <div class="insurance-info">
+                <div class="insurance-name">意外碎宝险-365天</div>
+                <div class="insurance-period">有效期: 2025/08/15-2026/08/14</div>
+              </div>
+              <span class="insurance-status active">未使用</span>
+            </div>
+            <div class="insurance-bottom">
+              <span class="insurance-remaining">剩余 <strong>1</strong> 次</span>
+              <span class="insurance-desc-toggle" onclick="toggleDesc(2)">
+                查看说明 ▼
+              </span>
+            </div>
+            <div id="desc-2" class="insurance-desc" style="display: none;">
+              <p>保障内容：意外碎屏、意外损坏</p>
+              <p>理赔次数：1次</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function toggleDesc(id) {
+      const desc = document.getElementById('desc-' + id);
+      const toggle = desc.previousElementSibling.querySelector('.insurance-desc-toggle');
+      if (desc.style.display === 'none') {
+        desc.style.display = 'block';
+        toggle.textContent = '收起说明 ▲';
+      } else {
+        desc.style.display = 'none';
+        toggle.textContent = '查看说明 ▼';
+      }
+    }
+  </script>
+</body>
+</html>
